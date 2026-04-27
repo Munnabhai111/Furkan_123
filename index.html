@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional A4 Passport Tool</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        :root { --primary: #2563eb; --bg: #f1f5f9; --text: #1e293b; --accent: #10b981; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
+        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); max-width: 500px; margin: auto; text-align: center; }
+        header { margin-bottom: 20px; color: var(--primary); }
+        label { display: block; text-align: left; font-size: 13px; font-weight: 600; margin: 10px 0 5px; color: #64748b; }
+        
+        input, select, button { width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
+        
+        button.main-btn { background: var(--primary); color: white; border: none; font-weight: 600; cursor: pointer; margin-top: 15px; transition: 0.3s; }
+        button.main-btn:hover { background: #1d4ed8; }
+        
+        .adjust-btn { background: #64748b; color: white; border: none; margin-top: 10px; cursor: pointer; display: none; }
+        .download-btn { background: var(--accent) !important; }
+
+        /* Editing Section */
+        #editor-section { display: none; margin-top: 15px; border: 1px dashed #cbd5e1; padding: 10px; border-radius: 8px; }
+        .cropper-box { width: 100%; height: 250px; background: #000; overflow: hidden; }
+        img#image-preview { max-width: 100%; display: none; }
+        
+        .edit-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-top: 10px; }
+        .tool-btn { padding: 8px; background: #f1f5f9; border: 1px solid #ccc; cursor: pointer; }
+
+        canvas { max-width: 100%; height: auto; border: 1px solid #cbd5e1; margin-top: 20px; background: #fff; display: none; margin-left: auto; margin-right: auto; }
+        
+        @media print {
+            @page { size: A4; margin: 0; }
+            body * { display: none !important; }
+            canvas { display: block !important; position: fixed; top: 0; left: 0; width: 100% !important; border: none !important; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <header><h2>Passport Photo AI</h2></header>
+    
+    <label>Step 1: Upload Photo</label>
+    <input type="file" id="upload" accept="image/*">
+    
+    <button id="show-adjuster" class="adjust-btn" onclick="toggleAdjuster()">
+        <i class="fa fa-crop"></i> Adjust Photo (Optional)
+    </button>
+
+    <div id="editor-section">
+        <div class="cropper-box">
+            <img id="image-preview">
+        </div>
+        <div class="edit-row">
+            <button class="tool-btn" onclick="zoom(0.1)"><i class="fa fa-plus"></i></button>
+            <button class="tool-btn" onclick="zoom(-0.1)"><i class="fa fa-minus"></i></button>
+            <button class="tool-btn" onclick="rotate(-90)"><i class="fa fa-rotate-left"></i></button>
+            <button class="tool-btn" onclick="rotate(90)"><i class="fa fa-rotate-right"></i></button>
+        </div>
+    </div>
+    
+    <label>Step 2: Photos per Row</label>
+    <select id="cols">
+        <option value="4">4 Photos</option>
+        <option value="5">5 Photos</option>
+        <option value="6" selected>6 Photos</option>
+        <option value="8">8 Photos</option>
+    </select>
+
+    <label>Step 3: Total Photos</label>
+    <input type="number" id="qty" value="12">
+
+    <button class="main-btn" onclick="generateSheet()">Generate Sheet</button>
+    <button id="print-btn" class="main-btn download-btn" style="display: none;" onclick="downloadAndPrint()">Download & Print HD</button>
+</div>
+
+<canvas id="canvas" width="2480" height="3508"></canvas>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+
+<script>
+    let cropper;
+    let isAdjusting = false;
+    let lastCroppedImage = null; // Memory for adjusted photo
+
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    const imagePreview = document.getElementById('image-preview');
+    const uploadInput = document.getElementById('upload');
+    const adjustBtn = document.getElementById('show-adjuster');
+    const editorSection = document.getElementById('editor-section');
+
+    uploadInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            imagePreview.src = URL.createObjectURL(file);
+            adjustBtn.style.display = 'block';
+            lastCroppedImage = null; // New upload reset memory
+            
+            if (cropper) {
+                cropper.destroy();
+                cropper = null;
+                editorSection.style.display = 'none';
+                isAdjusting = false;
+                adjustBtn.innerHTML = "<i class='fa fa-crop'></i> Adjust Photo (Optional)";
+                adjustBtn.style.background = "#64748b";
+            }
+        }
+    });
+
+    function toggleAdjuster() {
+        if (!isAdjusting) {
+            // Start Adjusting
+            isAdjusting = true;
+            editorSection.style.display = 'block';
+            imagePreview.style.display = 'block';
+            cropper = new Cropper(imagePreview, {
+                aspectRatio: 3.5 / 4.5,
+                viewMode: 1,
+                autoCropArea: 1
+            });
+            adjustBtn.innerHTML = "<i class='fa fa-check'></i> Done Adjusting";
+            adjustBtn.style.background = "#10b981";
+        } else {
+            // Done Adjusting - Save to memory
+            if (cropper) {
+                lastCroppedImage = cropper.getCroppedCanvas({ width: 413, height: 531 });
+                cropper.destroy();
+                cropper = null;
+            }
+            isAdjusting = false;
+            editorSection.style.display = 'none';
+            adjustBtn.innerHTML = "<i class='fa fa-crop'></i> Photo Adjusted (Change?)";
+            adjustBtn.style.background = "#2563eb"; // Blue color to show it's saved
+        }
+    }
+
+    function zoom(v) { if(cropper) cropper.zoom(v); }
+    function rotate(d) { if(cropper) cropper.rotate(d); }
+
+    function generateSheet() {
+        const file = uploadInput.files[0];
+        if (!file) { alert("Pehle photo upload karein!"); return; }
+
+        const cols = parseInt(document.getElementById("cols").value);
+        const qty = parseInt(document.getElementById("qty").value);
+        const gap = 35; 
+        const margin = 120; 
+        const w = 380; 
+        const h = 480;
+
+        ctx.fillStyle = "white";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Logic check: Adjusted photo hai ya direct?
+        if (lastCroppedImage) {
+            // Adjusted Memory wala photo use karo
+            drawPhotosOnCanvas(lastCroppedImage, cols, qty, margin, gap, w, h, false);
+        } else if (isAdjusting && cropper) {
+            // Agar editor khula hai aur Generate daba diya
+            const tempCrop = cropper.getCroppedCanvas({ width: 413, height: 531 });
+            drawPhotosOnCanvas(tempCrop, cols, qty, margin, gap, w, h, false);
+        } else {
+            // Direct system
+            const img = new Image();
+            img.onload = function() {
+                drawPhotosOnCanvas(img, cols, qty, margin, gap, w, h, true);
+            };
+            img.src = URL.createObjectURL(file);
+        }
+    }
+
+    function drawPhotosOnCanvas(source, cols, qty, margin, gap, w, h, isDirect) {
+        let x = margin;
+        let y = margin;
+
+        for (let i = 0; i < qty; i++) {
+            if (isDirect) {
+                let imgRatio = source.width / source.height;
+                let targetRatio = w / h;
+                let sx, sy, sw, sh;
+                if (imgRatio > targetRatio) {
+                    sh = source.height; sw = source.height * targetRatio;
+                    sx = (source.width - sw) / 2; sy = 0;
+                } else {
+                    sw = source.width; sh = source.width / targetRatio;
+                    sx = 0; sy = (source.height - sh) / 2;
+                }
+                ctx.drawImage(source, sx, sy, sw, sh, x, y, w, h);
+            } else {
+                // Source is already a cropped canvas or memory image
+                ctx.drawImage(source, x, y, w, h);
+            }
+
+            ctx.strokeStyle = "black";
+            ctx.lineWidth = 4;
+            ctx.strokeRect(x, y, w, h);
+
+            x += w + gap;
+            if ((i + 1) % cols === 0) { x = margin; y += h + gap; }
+        }
+        canvas.style.display = 'block';
+        document.getElementById('print-btn').style.display = 'block';
+        canvas.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function downloadAndPrint() {
+        const link = document.createElement('a');
+        link.download = 'passport_sheet_hd.png';
+        link.href = canvas.toDataURL("image/png", 1.0);
+        link.click();
+        setTimeout(() => { window.print(); }, 500);
+    }
+</script>
+
+</body>
+</html>
