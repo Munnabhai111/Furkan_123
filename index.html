@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Professional A4 Passport Tool</title>
+    <title>KALAM PHOTO EDITOR (free)</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -31,6 +31,8 @@
         .edit-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-top: 10px; }
         .tool-btn { padding: 8px; background: #f1f5f9; border: 1px solid #ccc; cursor: pointer; }
 
+        .input-group-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px; }
+
         canvas { max-width: 100%; height: auto; border: 1px solid #cbd5e1; margin-top: 20px; background: #fff; display: none; margin-left: auto; margin-right: auto; }
         
         @media print {
@@ -43,7 +45,7 @@
 <body>
 
 <div class="card">
-    <header><h2>Passport Photo AI</h2></header>
+    <header><h2>KALAM PHOTO EDITOR (free)</h2></header>
     
     <label>Step 1: Upload Photo</label>
     <input type="file" id="upload" accept="image/*">
@@ -72,8 +74,16 @@
         <option value="8">8 Photos</option>
     </select>
 
-    <label>Step 3: Total Photos</label>
-    <input type="number" id="qty" value="12">
+    <div class="input-group-row">
+        <div>
+            <label style="margin-top: 0;">Step 3: Total Photos</label>
+            <input type="number" id="qty" value="6" min="1">
+        </div>
+        <div>
+            <label style="margin-top: 0;">Photo Gap (px)</label>
+            <input type="number" id="gap" value="20" min="0">
+        </div>
+    </div>
 
     <button class="main-btn" onclick="generateSheet()">Generate Sheet</button>
     <button id="print-btn" class="main-btn download-btn" style="display: none;" onclick="downloadAndPrint()">Download & Print HD</button>
@@ -86,7 +96,7 @@
 <script>
     let cropper;
     let isAdjusting = false;
-    let lastCroppedImage = null; // Memory for adjusted photo
+    let lastCroppedImage = null;
 
     const canvas = document.getElementById("canvas");
     const ctx = canvas.getContext("2d");
@@ -100,7 +110,7 @@
         if (file) {
             imagePreview.src = URL.createObjectURL(file);
             adjustBtn.style.display = 'block';
-            lastCroppedImage = null; // New upload reset memory
+            lastCroppedImage = null;
             
             if (cropper) {
                 cropper.destroy();
@@ -115,7 +125,6 @@
 
     function toggleAdjuster() {
         if (!isAdjusting) {
-            // Start Adjusting
             isAdjusting = true;
             editorSection.style.display = 'block';
             imagePreview.style.display = 'block';
@@ -127,7 +136,6 @@
             adjustBtn.innerHTML = "<i class='fa fa-check'></i> Done Adjusting";
             adjustBtn.style.background = "#10b981";
         } else {
-            // Done Adjusting - Save to memory
             if (cropper) {
                 lastCroppedImage = cropper.getCroppedCanvas({ width: 413, height: 531 });
                 cropper.destroy();
@@ -136,7 +144,7 @@
             isAdjusting = false;
             editorSection.style.display = 'none';
             adjustBtn.innerHTML = "<i class='fa fa-crop'></i> Photo Adjusted (Change?)";
-            adjustBtn.style.background = "#2563eb"; // Blue color to show it's saved
+            adjustBtn.style.background = "#2563eb";
         }
     }
 
@@ -149,7 +157,8 @@
 
         const cols = parseInt(document.getElementById("cols").value);
         const qty = parseInt(document.getElementById("qty").value);
-        const gap = 35; 
+        const gap = parseInt(document.getElementById("gap").value) || 0; 
+        
         const margin = 120; 
         const w = 380; 
         const h = 480;
@@ -157,16 +166,12 @@
         ctx.fillStyle = "white";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Logic check: Adjusted photo hai ya direct?
         if (lastCroppedImage) {
-            // Adjusted Memory wala photo use karo
             drawPhotosOnCanvas(lastCroppedImage, cols, qty, margin, gap, w, h, false);
         } else if (isAdjusting && cropper) {
-            // Agar editor khula hai aur Generate daba diya
             const tempCrop = cropper.getCroppedCanvas({ width: 413, height: 531 });
             drawPhotosOnCanvas(tempCrop, cols, qty, margin, gap, w, h, false);
         } else {
-            // Direct system
             const img = new Image();
             img.onload = function() {
                 drawPhotosOnCanvas(img, cols, qty, margin, gap, w, h, true);
@@ -193,7 +198,6 @@
                 }
                 ctx.drawImage(source, sx, sy, sw, sh, x, y, w, h);
             } else {
-                // Source is already a cropped canvas or memory image
                 ctx.drawImage(source, x, y, w, h);
             }
 
