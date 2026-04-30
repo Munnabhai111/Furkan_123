@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KALAM PHOTO EDITOR (free)</title>
+    <title>KALAM PHOTO EDITOR (With Border)</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -11,7 +11,6 @@
     <style>
         :root { --primary: #2563eb; --bg: #f1f5f9; --text: #1e293b; --accent: #10b981; }
 
-        /* --- STYLISH ENTRANCE ANIMATION --- */
         @keyframes slideUpFade {
             from { opacity: 0; transform: translateY(30px); }
             to { opacity: 1; transform: translateY(0); }
@@ -26,14 +25,12 @@
             overflow-x: hidden;
         }
 
-        /* --- BACKGROUND SCROLLING TEXT --- */
         .bg-scrolling-container { position: fixed; top: 50%; left: 0; width: 100%; transform: translateY(-50%); z-index: -1; pointer-events: none; opacity: 0.25; }
         .scrolling-text { font-size: 12vw; font-weight: 900; white-space: nowrap; text-transform: uppercase; color: #000; display: inline-block; animation: slowScrollWithDelay 25s linear infinite; }
         @keyframes slowScrollWithDelay { 0% { transform: translateX(100%); } 80% { transform: translateX(-100%); } 100% { transform: translateX(-100%); } }
 
         .corner-brand { position: fixed; bottom: 20px; right: 20px; background: #000; color: white; padding: 12px 24px; border-radius: 50px; font-size: 14px; font-weight: 800; box-shadow: 0 4px 20px rgba(0,0,0,0.4); z-index: 100; display: flex; align-items: center; gap: 10px; border: 2px solid rgba(255,255,255,0.1); }
 
-        /* Card with animation */
         .card { 
             background: rgba(255, 255, 255, 0.97); 
             padding: 25px; 
@@ -55,7 +52,6 @@
         button.main-btn { background: var(--primary); color: white; border: none; font-weight: 600; cursor: pointer; margin-top: 15px; transition: 0.3s; }
         button.main-btn:hover { background: #1d4ed8; transform: translateY(-2px); }
         
-        /* BLUE BUTTONS FOR ADJUST/DONE */
         .adjust-btn { background: var(--primary); color: white; border: none; margin-top: 10px; cursor: pointer; display: none; font-weight: 600; transition: background 0.3s; }
         .adjust-btn:hover { background: #1d4ed8; }
 
@@ -74,7 +70,7 @@
         @media print {
             @page { size: A4; margin: 0; }
             body * { display: none !important; }
-            canvas { display: block !important; position: fixed; top: 0; left: 0; width: 100% !important; }
+            canvas { display: block !important; position: fixed; top: 0; left: 0; width: 100% !important; border: none !important; }
         }
     </style>
 </head>
@@ -173,13 +169,26 @@
             editorSection.style.display = 'block';
             imagePreview.style.display = 'block';
             const sizeData = document.getElementById("photo-size").value.split(',');
-            cropper = new Cropper(imagePreview, { aspectRatio: sizeData[0]/sizeData[1], viewMode: 1 });
-            adjustBtn.innerHTML = "<i class='fa fa-check'></i> Done"; // Button remains blue as per CSS
+            cropper = new Cropper(imagePreview, { 
+                aspectRatio: sizeData[0]/sizeData[1], 
+                viewMode: 1,
+                imageSmoothingEnabled: true,
+                imageSmoothingQuality: 'high'
+            });
+            adjustBtn.innerHTML = "<i class='fa fa-check'></i> Done";
         } else {
-            if (cropper) { lastCroppedImage = cropper.getCroppedCanvas(); cropper.destroy(); cropper = null; }
+            if (cropper) { 
+                lastCroppedImage = cropper.getCroppedCanvas({
+                    imageSmoothingEnabled: true,
+                    imageSmoothingQuality: 'high',
+                    fillColor: '#fff'
+                }); 
+                cropper.destroy(); 
+                cropper = null; 
+            }
             isAdjusting = false;
             editorSection.style.display = 'none';
-            adjustBtn.innerHTML = "<i class='fa fa-crop'></i> Adjusted (Change?)"; // Button remains blue as per CSS
+            adjustBtn.innerHTML = "<i class='fa fa-crop'></i> Adjusted (Change?)";
         }
     }
 
@@ -195,31 +204,41 @@
         const qty = parseInt(document.getElementById("qty").value);
         const gap = parseInt(document.getElementById("gap").value);
         
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.fillStyle = "white";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         const img = new Image();
         img.onload = function() {
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            ctx.filter = "brightness(1.05) contrast(1.1) saturate(1.1)";
+
             let x = 120, y = 120;
             for (let i = 0; i < qty; i++) {
-                if (lastCroppedImage) {
-                    ctx.drawImage(lastCroppedImage, x, y, targetW, targetH);
-                } else {
-                    ctx.drawImage(img, x, y, targetW, targetH);
-                }
-                ctx.strokeStyle = "black"; ctx.lineWidth = 2;
+                const source = lastCroppedImage || img;
+                ctx.drawImage(source, x, y, targetW, targetH);
+                
+                // --- BORDER ADDED HERE ---
+                ctx.save();
+                ctx.filter = "none"; // Border par brightness filter na lage
+                ctx.strokeStyle = "black"; 
+                ctx.lineWidth = 2; // Border ki motai
                 ctx.strokeRect(x, y, targetW, targetH);
-
+                ctx.restore();
+                
                 x += targetW + gap;
                 if ((i + 1) % cols === 0) { x = 120; y += targetH + gap; }
             }
+            
+            ctx.filter = "none";
             canvas.style.display = 'block';
             document.getElementById('print-btn').style.display = 'block';
             canvas.scrollIntoView({ behavior: 'smooth' });
         };
 
         if (lastCroppedImage) {
-            img.src = lastCroppedImage.toDataURL();
+            img.src = lastCroppedImage.toDataURL("image/png", 1.0);
         } else {
             img.src = URL.createObjectURL(uploadInput.files[0]);
         }
@@ -227,8 +246,8 @@
 
     function downloadAndPrint() {
         const link = document.createElement('a');
-        link.download = 'kalam_print.png';
-        link.href = canvas.toDataURL("image/png");
+        link.download = 'kalam_print_hd.png';
+        link.href = canvas.toDataURL("image/png", 1.0);
         link.click();
         setTimeout(() => { window.print(); }, 500);
     }
