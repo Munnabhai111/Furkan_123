@@ -3,18 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KALAM PHOTO EDITOR (With Border)</title>
+    <title>KALAM PHOTO & AADHAR EDITOR PRO</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
-    <style>
-        :root { --primary: #2563eb; --bg: #f1f5f9; --text: #1e293b; --accent: #10b981; }
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
-        @keyframes slideUpFade {
-            from { opacity: 0; transform: translateY(30px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+    <style>
+        :root { --primary: #2563eb; --bg: #f1f5f9; --text: #1e293b; --aadhar-accent: #ff9933; --success: #10b981; }
 
         body { 
             font-family: 'Inter', sans-serif; 
@@ -25,9 +22,9 @@
             overflow-x: hidden;
         }
 
-        .bg-scrolling-container { position: fixed; top: 50%; left: 0; width: 100%; transform: translateY(-50%); z-index: -1; pointer-events: none; opacity: 0.25; }
-        .scrolling-text { font-size: 12vw; font-weight: 900; white-space: nowrap; text-transform: uppercase; color: #000; display: inline-block; animation: slowScrollWithDelay 25s linear infinite; }
-        @keyframes slowScrollWithDelay { 0% { transform: translateX(100%); } 80% { transform: translateX(-100%); } 100% { transform: translateX(-100%); } }
+        .bg-scrolling-container { position: fixed; top: 50%; left: 0; width: 100%; transform: translateY(-50%); z-index: -1; pointer-events: none; opacity: 0.15; }
+        .scrolling-text { font-size: 10vw; font-weight: 900; white-space: nowrap; text-transform: uppercase; color: #000; display: inline-block; animation: slowScroll 25s linear infinite; }
+        @keyframes slowScroll { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
 
         .corner-brand { position: fixed; bottom: 20px; right: 20px; background: #000; color: white; padding: 12px 24px; border-radius: 50px; font-size: 14px; font-weight: 800; box-shadow: 0 4px 20px rgba(0,0,0,0.4); z-index: 100; display: flex; align-items: center; gap: 10px; border: 2px solid rgba(255,255,255,0.1); }
 
@@ -41,31 +38,31 @@
             text-align: center; 
             position: relative; 
             z-index: 10;
-            animation: slideUpFade 0.8s ease-out forwards;
+            border-top: 6px solid var(--primary);
+            transition: all 0.3s ease;
         }
 
-        header { margin-bottom: 20px; color: var(--primary); }
-        label { display: block; text-align: left; font-size: 13px; font-weight: 600; margin: 10px 0 5px; color: #64748b; }
+        .card.aadhar-mode { border-top-color: var(--aadhar-accent); }
+
+        header h2 { margin: 0 0 20px; color: var(--primary); font-weight: 900; }
+        .aadhar-mode header h2 { color: var(--aadhar-accent); }
         
+        label { display: block; text-align: left; font-size: 13px; font-weight: 600; margin: 10px 0 5px; color: #64748b; }
         input, select, button { width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; box-sizing: border-box; font-size: 14px; margin-bottom: 5px; }
         
         button.main-btn { background: var(--primary); color: white; border: none; font-weight: 600; cursor: pointer; margin-top: 15px; transition: 0.3s; }
-        button.main-btn:hover { background: #1d4ed8; transform: translateY(-2px); }
+        .aadhar-mode button.main-btn { background: var(--aadhar-accent); }
+        button.main-btn:hover { opacity: 0.9; transform: translateY(-2px); }
         
-        .adjust-btn { background: var(--primary); color: white; border: none; margin-top: 10px; cursor: pointer; display: none; font-weight: 600; transition: background 0.3s; }
-        .adjust-btn:hover { background: #1d4ed8; }
-
-        .download-btn { background: var(--accent) !important; }
+        .adjust-btn { background: #64748b; color: white; border: none; margin-top: 10px; cursor: pointer; display: none; font-weight: 600; }
 
         #editor-section { display: none; margin-top: 15px; border: 2px dashed #cbd5e1; padding: 10px; border-radius: 8px; }
-        .cropper-box { width: 100%; height: 250px; background: #000; overflow: hidden; }
-        img#image-preview { max-width: 100%; display: none; }
+        .cropper-box { width: 100%; height: 280px; background: #000; overflow: hidden; }
         
-        .edit-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-top: 10px; }
-        .tool-btn { padding: 8px; background: #f1f5f9; border: 1px solid #ccc; cursor: pointer; border-radius: 4px; }
+        .tool-btn { padding: 8px; background: #f1f5f9; border: 1px solid #ccc; cursor: pointer; border-radius: 4px; width: auto; flex: 1; }
         .input-group-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
 
-        canvas { max-width: 100%; height: auto; border: 1px solid #cbd5e1; margin-top: 20px; background: #fff; display: none; margin-left: auto; margin-right: auto; }
+        canvas { max-width: 100%; height: auto; border: 1px solid #ccc; margin-top: 20px; background: #fff; display: none; margin-left: auto; margin-right: auto; box-shadow: 0 0 20px rgba(0,0,0,0.1); }
         
         @media print {
             @page { size: A4; margin: 0; }
@@ -82,16 +79,22 @@
 
 <div class="corner-brand"><i class="fa fa-university"></i> KALAM JAN SEVA KENDRA</div>
 
-<div class="card">
-    <header><h2>KALAM PHOTO EDITOR</h2></header>
+<div class="card" id="mainCard">
+    <header><h2 id="headerTitle">KALAM PHOTO EDITOR</h2></header>
+
+    <label>Work Mode Select Karein</label>
+    <select id="workMode" onchange="toggleMode()">
+        <option value="passport" selected>Passport Photo Mode (All Sizes)</option>
+        <option value="aadhar">Aadhar Card Mode (Smart Crop)</option>
+    </select>
     
-    <label>Step 1: Upload Photo</label>
-    <input type="file" id="upload" accept="image/*">
+    <label id="uploadLabel">Step 1: Upload Photo</label>
+    <input type="file" id="upload" accept="image/*,application/pdf">
     <button id="show-adjuster" class="adjust-btn" onclick="toggleAdjuster()"><i class="fa fa-crop"></i> Adjust Photo</button>
 
     <div id="editor-section">
         <div class="cropper-box"><img id="image-preview"></div>
-        <div class="edit-row">
+        <div style="display: flex; gap: 5px; margin-top: 10px;">
             <button class="tool-btn" onclick="zoom(0.1)"><i class="fa fa-plus"></i></button>
             <button class="tool-btn" onclick="zoom(-0.1)"><i class="fa fa-minus"></i></button>
             <button class="tool-btn" onclick="rotate(-90)"><i class="fa fa-rotate-left"></i></button>
@@ -99,33 +102,34 @@
         </div>
     </div>
     
-    <label>Step 2: Photos per Row</label>
-    <select id="cols">
-        <option value="1">1 Photo</option>
-        <option value="2">2 Photos</option>
-        <option value="4">4 Photos</option>
-        <option value="6" selected>6 Photos</option>
-    </select>
+    <div id="passportSettings">
+        <label>Step 2: Photos per Row</label>
+        <select id="cols">
+            <option value="1">1 Photo</option>
+            <option value="2">2 Photos</option>
+            <option value="4">4 Photos</option>
+            <option value="6" selected>6 Photos</option>
+        </select>
 
-    <div class="input-group-row">
-        <div><label>Step 3: Total Photos</label><input type="number" id="qty" value="6"></div>
-        <div><label>Gap (px)</label><input type="number" id="gap" value="20"></div>
+        <div class="input-group-row">
+            <div><label>Step 3: Total Photos</label><input type="number" id="qty" value="6"></div>
+            <div><label>Gap (px)</label><input type="number" id="gap" value="20"></div>
+        </div>
+
+        <label>Step 4: Select Photo Size</label>
+        <select id="photo-size" onchange="updateCropRatio()">
+            <option value="380,480">Passport Size (3.5 x 4.5 cm)</option>
+            <option value="1181,1772">Postcard Size (4 x 6 in)</option>
+            <option value="637,1011">ID Card Photo (5.4 x 8.6 cm)</option>
+            <option value="2480,3508">A4 Full Size Photo</option>
+            <option value="236,295">Stamp Size (2 x 2.5 cm)</option>
+            <option value="413,413">Visa Photo (3.5 x 3.5 cm)</option>
+            <option value="1417,2126">Cabinet Size (12 x 18 cm)</option>
+        </select>
     </div>
 
-    <label>Step 4: Select Photo Size</label>
-    <select id="photo-size" onchange="updateCropRatio()">
-        <option value="380,480,0.79">Passport Size (3.5 x 4.5 cm)</option>
-        <option value="1181,1772,0.67">Postcard Size (4 x 6 in)</option>
-        <option value="637,1011,0.63">ID Card Photo (5.4 x 8.6 cm)</option>
-        <option value="2480,3508,0.71">A4 Full Size Photo</option>
-        <option value="236,295,0.80">Stamp Size (2 x 2.5 cm)</option>
-        <option value="413,413,1.0">Visa Photo (3.5 x 3.5 cm)</option>
-        <option value="1417,2126,0.67">Cabinet Size (12 x 18 cm)</option>
-        <option value="500,500,1.0">Square Photo (Instagram)</option>
-    </select>
-
     <button class="main-btn" onclick="generateSheet()">Generate Sheet</button>
-    <button id="print-btn" class="main-btn download-btn" style="display: none;" onclick="downloadAndPrint()">Download & Print HD</button>
+    <button id="print-btn" class="main-btn" style="display: none; background: var(--success);" onclick="downloadAndPrint()">Download & Print HD</button>
 </div>
 
 <canvas id="canvas" width="2480" height="3508"></canvas>
@@ -133,6 +137,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 
 <script>
+    const pdfjsLib = window['pdfjs-dist/build/pdf'];
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
     let cropper;
     let isAdjusting = false;
     let lastCroppedImage = null;
@@ -144,51 +151,109 @@
     const adjustBtn = document.getElementById('show-adjuster');
     const editorSection = document.getElementById('editor-section');
 
+    function toggleMode() {
+        const mode = document.getElementById('workMode').value;
+        const card = document.getElementById('mainCard');
+        const headerTitle = document.getElementById('headerTitle');
+        const passportSettings = document.getElementById('passportSettings');
+        const uploadLabel = document.getElementById('uploadLabel');
+
+        if (mode === 'aadhar') {
+            card.classList.add('aadhar-mode');
+            headerTitle.innerText = "KALAM AADHAR EDITOR";
+            passportSettings.style.display = 'none';
+            uploadLabel.innerText = "Step 1: Upload Aadhar Image/PDF";
+        } else {
+            card.classList.remove('aadhar-mode');
+            headerTitle.innerText = "KALAM PHOTO EDITOR";
+            passportSettings.style.display = 'block';
+            uploadLabel.innerText = "Step 1: Upload Photo";
+        }
+        resetEditor();
+    }
+
+    function resetEditor() {
+        if (cropper) { cropper.destroy(); cropper = null; }
+        isAdjusting = false;
+        editorSection.style.display = 'none';
+        adjustBtn.style.display = 'none';
+        lastCroppedImage = null;
+    }
+
     function updateCropRatio() {
-        if (cropper) {
+        if (cropper && document.getElementById('workMode').value === 'passport') {
             const sizeData = document.getElementById("photo-size").value.split(',');
-            const w = parseFloat(sizeData[0]);
-            const h = parseFloat(sizeData[1]);
-            cropper.setAspectRatio(w / h);
+            cropper.setAspectRatio(parseFloat(sizeData[0]) / parseFloat(sizeData[1]));
         }
     }
 
-    uploadInput.addEventListener('change', (e) => {
+    uploadInput.addEventListener('change', async (e) => {
         const file = e.target.files[0];
-        if (file) {
+        if (!file) return;
+        resetEditor();
+
+        if (file.type === "application/pdf") {
+            const password = prompt("Enter PDF Password (if any):");
+            const reader = new FileReader();
+            reader.onload = async function() {
+                const typedarray = new Uint8Array(this.result);
+                try {
+                    const pdf = await pdfjsLib.getDocument({ data: typedarray, password: password }).promise;
+                    const page = await pdf.getPage(1);
+                    const viewport = page.getViewport({ scale: 4.0 }); // High Quality
+                    const tempCanvas = document.createElement('canvas');
+                    const tempCtx = tempCanvas.getContext('2d');
+                    tempCanvas.height = viewport.height;
+                    tempCanvas.width = viewport.width;
+
+                    await page.render({ canvasContext: tempCtx, viewport: viewport }).promise;
+                    
+                    if(document.getElementById('workMode').value === 'aadhar') {
+                        // Auto Crop Logic for Aadhar Bottom Part
+                        const cropW = tempCanvas.width;
+                        const cropH = tempCanvas.height * 0.32; 
+                        const cropY = tempCanvas.height - cropH - (tempCanvas.height * 0.04); 
+                        const finalCrop = document.createElement('canvas');
+                        finalCrop.width = cropW; finalCrop.height = cropH;
+                        finalCrop.getContext('2d').drawImage(tempCanvas, 0, cropY, cropW, cropH, 0, 0, cropW, cropH);
+                        imagePreview.src = finalCrop.toDataURL('image/png');
+                    } else {
+                        imagePreview.src = tempCanvas.toDataURL('image/png');
+                    }
+                    adjustBtn.style.display = 'block';
+                } catch (err) { alert("PDF Error! Password galat ho sakta hai."); }
+            };
+            reader.readAsArrayBuffer(file);
+        } else {
             imagePreview.src = URL.createObjectURL(file);
             adjustBtn.style.display = 'block';
-            lastCroppedImage = null;
-            if (cropper) { cropper.destroy(); cropper = null; editorSection.style.display = 'none'; isAdjusting = false; adjustBtn.innerHTML = "<i class='fa fa-crop'></i> Adjust Photo"; }
         }
     });
 
     function toggleAdjuster() {
+        const mode = document.getElementById('workMode').value;
         if (!isAdjusting) {
             isAdjusting = true;
             editorSection.style.display = 'block';
             imagePreview.style.display = 'block';
-            const sizeData = document.getElementById("photo-size").value.split(',');
+            
+            let ratio = mode === 'aadhar' ? 17.5 / 5.5 : parseFloat(document.getElementById("photo-size").value.split(',')[0]) / parseFloat(document.getElementById("photo-size").value.split(',')[1]);
+
             cropper = new Cropper(imagePreview, { 
-                aspectRatio: sizeData[0]/sizeData[1], 
+                aspectRatio: ratio, 
                 viewMode: 1,
-                imageSmoothingEnabled: true,
-                imageSmoothingQuality: 'high'
+                autoCropArea: 1
             });
-            adjustBtn.innerHTML = "<i class='fa fa-check'></i> Done";
+            adjustBtn.innerHTML = "<i class='fa fa-check'></i> Apply Crop";
         } else {
             if (cropper) { 
-                lastCroppedImage = cropper.getCroppedCanvas({
-                    imageSmoothingEnabled: true,
-                    imageSmoothingQuality: 'high',
-                    fillColor: '#fff'
-                }); 
-                cropper.destroy(); 
-                cropper = null; 
+                lastCroppedImage = cropper.getCroppedCanvas({ width: 2000, imageSmoothingQuality: 'high' }); 
+                imagePreview.src = lastCroppedImage.toDataURL('image/png');
+                cropper.destroy(); cropper = null; 
             }
             isAdjusting = false;
             editorSection.style.display = 'none';
-            adjustBtn.innerHTML = "<i class='fa fa-crop'></i> Adjusted (Change?)";
+            adjustBtn.innerHTML = "<i class='fa fa-crop'></i> Crop Done ✓";
         }
     }
 
@@ -196,57 +261,65 @@
     function rotate(d) { if(cropper) cropper.rotate(d); }
 
     function generateSheet() {
-        if (!uploadInput.files[0]) { alert("Photo upload karein!"); return; }
-        const sizeData = document.getElementById("photo-size").value.split(',');
-        const targetW = parseInt(sizeData[0]);
-        const targetH = parseInt(sizeData[1]);
-        const cols = parseInt(document.getElementById("cols").value);
-        const qty = parseInt(document.getElementById("qty").value);
-        const gap = parseInt(document.getElementById("gap").value);
+        if (!imagePreview.src) { alert("Pehle photo upload karein!"); return; }
         
+        const mode = document.getElementById('workMode').value;
+        const PPI = 300;
+        const CM_TO_PX = PPI / 2.54;
+        
+        let targetW, targetH, cols, qty, gap;
+
+        if (mode === 'aadhar') {
+            targetW = 17.5 * CM_TO_PX; 
+            targetH = 5.5 * CM_TO_PX;
+            cols = 1; qty = 1; gap = 0;
+        } else {
+            const sizeData = document.getElementById("photo-size").value.split(',');
+            targetW = parseInt(sizeData[0]);
+            targetH = parseInt(sizeData[1]);
+            cols = parseInt(document.getElementById("cols").value);
+            qty = parseInt(document.getElementById("qty").value);
+            gap = parseInt(document.getElementById("gap").value);
+        }
+
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.fillStyle = "white";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         const img = new Image();
-        img.onload = function() {
+        img.onload = () => {
             ctx.imageSmoothingEnabled = true;
             ctx.imageSmoothingQuality = 'high';
-            ctx.filter = "brightness(1.05) contrast(1.1) saturate(1.1)";
+            // HD Effects
+            ctx.filter = "brightness(1.05) contrast(1.05) saturate(1.1)";
 
-            let x = 120, y = 120;
+            let startX = (canvas.width - (targetW * cols + gap * (cols - 1))) / 2; 
+            let x = startX, y = 150;
+
             for (let i = 0; i < qty; i++) {
-                const source = lastCroppedImage || img;
-                ctx.drawImage(source, x, y, targetW, targetH);
+                ctx.drawImage(img, x, y, targetW, targetH);
                 
-                // --- BORDER ADDED HERE ---
+                // Black Border
                 ctx.save();
-                ctx.filter = "none"; // Border par brightness filter na lage
-                ctx.strokeStyle = "black"; 
-                ctx.lineWidth = 2; // Border ki motai
+                ctx.filter = "none";
+                ctx.strokeStyle = "#000"; 
+                ctx.lineWidth = 2;
                 ctx.strokeRect(x, y, targetW, targetH);
                 ctx.restore();
-                
+
                 x += targetW + gap;
-                if ((i + 1) % cols === 0) { x = 120; y += targetH + gap; }
+                if ((i + 1) % cols === 0) { x = startX; y += targetH + gap; }
             }
-            
-            ctx.filter = "none";
             canvas.style.display = 'block';
             document.getElementById('print-btn').style.display = 'block';
             canvas.scrollIntoView({ behavior: 'smooth' });
         };
-
-        if (lastCroppedImage) {
-            img.src = lastCroppedImage.toDataURL("image/png", 1.0);
-        } else {
-            img.src = URL.createObjectURL(uploadInput.files[0]);
-        }
+        img.src = lastCroppedImage ? lastCroppedImage.toDataURL() : imagePreview.src;
     }
 
     function downloadAndPrint() {
         const link = document.createElement('a');
-        link.download = 'kalam_print_hd.png';
+        link.download = 'Kalam_HD_Print.png';
         link.href = canvas.toDataURL("image/png", 1.0);
         link.click();
         setTimeout(() => { window.print(); }, 500);
